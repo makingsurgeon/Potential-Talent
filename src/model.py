@@ -1,76 +1,88 @@
-from sklearn import tree
 import pandas as pd
-from sklearn.feature_selection import RFE
-from sklearn.model_selection import train_test_split
-from sklearn import metrics
+from sklearn.feature_extraction.text import TfidfVectorizer
+import scipy.stats as ss
+import numpy as np
 from os import path
 
-def fit():
-    # clean data
-    a = pd.read_csv("term-deposit-marketing-2020.csv")
-    a['job'].replace(['management', 'technician', 'entrepreneur', 'blue-collar',
-       'unknown', 'retired', 'admin', 'services', 'self-employed',
-       'unemployed', 'housemaid', 'student'],
-                        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], inplace=True)
-    a['marital'].replace(['married', 'single', 'divorced'],
-                        [0, 1, 2], inplace=True)
-    a['education'].replace(['tertiary', 'secondary', 'unknown', 'primary'],
-                        [0, 1, 2, 3], inplace=True)
-    a['default'].replace(['no', 'yes'],
-                        [0, 1], inplace=True)
-    a['housing'].replace(['no', 'yes'],
-                        [0, 1], inplace=True)
-    a['loan'].replace(['no', 'yes'],
-                        [0, 1], inplace=True)
-    a['contact'].replace(['unknown', 'cellular', 'telephone'],
-                        [0, 1, 2], inplace=True)
-    a['month'].replace(['may', 'jun', 'jul', 'aug', 'oct', 'nov', 'dec', 'jan', 'feb',
-       'mar', 'apr'],
-                        [5, 6, 7, 8, 10, 11, 12, 1, 2, 3, 4], inplace=True)
-    a['y'].replace(["no", "yes"],
-                        [0,1], inplace=True)
-    X = a.drop(["y"], axis=1)
-    y = a["y"]
+def ranking():
+    # This function computes the rankings without starring. It uses tf-idf
+    # to determine the similarity between the profiles and the given prompt.
+    # Then a score based on the number of connects is calculated. Adding the
+    # together will give a score.
+    basepath = path.dirname(__file__)
+    filepath = path.abspath(path.join(basepath, "..", "potential-talents - Aspiring human resources - seeking human resources.csv")
+    a = pd.read_csv(filepath)
+    b = a["job_title"].str.replace('HR', 'Human Resources', regex=True)
+    c = []
+    for i in range(len(b)):
+        c.append(b[i])
+    c.append("Aspiring human resources")
+    c.append("seeking human resources")
+    tfidf = vect.fit_transform(c)
+    pairwise_similarity = tfidf * tfidf.T
+    r = pairwise_similarity[-2:, :].toarray()
+    r1 = r[0]
+    r2 = r[1] 
+    n_applicants = len(r1)-2
+    r1 = r1[:n_applicants]
+    r2 = r2[:n_applicants]
+    r3 = r1+r2
+    d = a["connection"].str.replace('500+ ', '500', regex=False)
+    d = d.astype("int")
+    e = []
+    for i in range(len(d)):
+        if d[i] == 500:
+            e.append(len(d))
+        else:
+            e.append(d[i]/500*len(d))
+    e1 = ss.rankdata(r3)
+    final_r = e1+e
+    e2 = ss.rankdata(final_r)
 
-    kf = KFold(n_splits=5)
-    d = {}
-    for i, (train_index, test_index) in enumerate(kf.split(X)):
-        d["train{0}".format(i)] = train_index
-        d["test{0}".format(i)] = test_index
+    return final_r 
+  
+       
 
+
+def star(starred, score):
+    # This function computes the rankings with starring. After starring, the
+    # starred profiles are assigned the highest score, a similar procedure 
+    # to above will be perforrmed to determine the remaining rankings.
     
-    f1 = []
-    accuracy = []
-    conf_matrix = []
-    for i in range(5):
-        train = X.loc[d["train{0}".format(i)]]
-        test = X.loc[d["test{0}".format(i)]]
-        y_train = y[d["train{0}".format(i)]]
-        y_test = y[d["test{0}".format(i)]]
-        y_train = y_train.reset_index(drop=True)
-        ind = []
-        for j in range(32000):
-            if y_train[j] == 1:
-                ind.append(j)
-        new_X = train.iloc[ind]
-        ind1 = []
-        for k in range(32000):
-            if y_train[k] == 0:
-                ind1.append(k)
-        new_X1 = train.iloc[ind1]
-        neg_sample = 8000-len(ind)
-        new_X2 = new_X1.sample(n=neg_sample, replace=False, random_state=0)
-        new_X3 = pd.concat([new_X,new_X2])
-        y_train = []
-        for i in range(len(ind)):
-            y_train.append(1)
-        for i in range(neg_sample):
-            y_train.append(0)
-        clf = RandomForestClassifier(random_state = 0)
-        clf.fit(new_X3, y_train)
-        y_pred = clf.predict(test)
-        f1.append(f1_score(y_test, y_pred))
-        accuracy.append(clf.score(test, y_test))
-        conf_matrix.append(confusion_matrix(y_test, y_pred))
+    basepath = path.dirname(__file__)
+    filepath = path.abspath(path.join(basepath, "..", "potential-talents - Aspiring human resources - seeking human resources.csv")
+    a = pd.read_csv(filepath)
+    b = a["job_title"].str.replace('HR', 'Human Resources', regex=True)
+    c = []
+    for i in range(len(b)):
+        c.append(b[i])
+    c.append("Aspiring human resources")
+    c.append("seeking human resources")
+    tfidf = vect.fit_transform(c)
+    pairwise_similarity = tfidf * tfidf.T
+    r = pairwise_similarity[-2:, :].toarray()
+    r1 = r[0]
+    r2 = r[1] 
+    n_applicants = len(r1)-2
+    r1 = r1[:n_applicants]
+    r2 = r2[:n_applicants]
+    r3 = r1+r2
+    d = a["connection"].str.replace('500+ ', '500', regex=False)
+    d = d.astype("int")
+    e = []
+    for i in range(len(d)):
+        if d[i] == 500:
+            e.append(len(d))
+        else:
+            e.append(d[i]/500*len(d))
+    e1 = ss.rankdata(r3)
+    final_r = e1+e
+    e2 = ss.rankdata(final_r)
+    v1 = pairwise_similarity[starred,:].toarray()
+    v2 = ss.rankdata(v1)
+    final_r1 = v2+e
+    score = final_r1
+    score[starred] = n_applicants*2
 
-    return f1, accuracy, conf_matrix
+    return score
+    
