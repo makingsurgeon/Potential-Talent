@@ -1,2 +1,2 @@
-# zFXvrO9DAIWN17BR
+# Potential talent
 An algorithm for ranking candidates.
